@@ -23,7 +23,7 @@
 (re-frame/reg-sub
   :matches
   (fn [db]
-    (:matches db)))
+    (/ (count (:matches db)) 2)))
 
 (re-frame/reg-sub
   :active-card
@@ -36,22 +36,15 @@
     (:cards db)))
 
 (re-frame/reg-sub
-  :board-setup
-  (fn [db]
-    (:board db)))
-
-(re-frame/reg-sub
   :win
   (fn [db]
-    (:win db)))
+    (= (/ (count (:matches db)) 2) (/ (:number-of-cards db) 2))))
 
 (re-frame/reg-sub
-  :get-checking-count
-  (fn [db]
-    (count (:checking-match db))))
-
-(re-frame/reg-sub
-  :revealed?
+  :card
   (fn [db [_ id]]
-    (get (:flipped-cards db) id)))
+    (let [image-id (get-in db [:board id])
+          card-info (get-in db [:cards image-id])]
+    {:revealed? (or (not (nil? (get-in db [:matches id])))  (not (nil? (get-in db [:selected id]))))
+     :image (get card-info :img)})))
 

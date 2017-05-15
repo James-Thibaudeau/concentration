@@ -20,7 +20,7 @@
   [sa/Menu {:size "small" :compact true :borderless true}
    [sa/Dropdown {:text "Menu" :item true}
     [sa/DropdownMenu
-     [sa/DropdownItem {:on-click (fn [] (re-frame/dispatch [:reset]))} "New Game"]
+     [sa/DropdownItem {:on-click (fn [] (re-frame/dispatch [:new-game]))} "New Game"]
      [about-modal]]]])
 
 (defn header [title]
@@ -42,7 +42,7 @@
                    :positive  true
                    :visible   @visible?
                    :hidden    (not @visible?)
-                   :onDismiss (fn [] (re-frame/dispatch [:reset]))}
+                   :onDismiss (fn [] (re-frame/dispatch [:new-game]))}
        [sa/Icon {:name "check"}]
        [sa/MessageContent
         [sa/MessageHeader "You win! Close this message to play again"]]])))
@@ -61,9 +61,8 @@
        [sa/CardDescription description]]]]
     ))
 
-(defn make-list-item [info]
-  (let [id (get info :id)
-        name (get info :name)
+(defn make-list-item [id info]
+  (let [name (get info :name)
         image (get info :img)]
     [sa/ListItem {:on-click #(re-frame/dispatch [:choose-card id])}
      [sa/Image {:avatar true :src image}]
@@ -74,34 +73,30 @@
   (let [cards (re-frame/subscribe [:cards])]
     [:div {:class-name "scroll-list"}
      [sa/ListSA {:selection true :verticalAlign "middle"}
-      (for [[k v] @cards] ^{:key (str "list-" k)} [make-list-item v])]])) ;--- maybe use map instead
+      (for [[k v] @cards] ^{:key (str "list-" k)} [make-list-item k v])]])) ;--- maybe use map instead
 
 ;----------------------- Game Cards / Grid
 
-(defn make-card [image grid-id image-id]
-  (let [revealed? (re-frame/subscribe [:revealed? grid-id])
+(defn make-card [grid-id]
+  (let [card-info (re-frame/subscribe [:card grid-id])
         card-back (re-frame/subscribe [:card-back])]
-    (fn [image grid-id image-id]
+    (fn [grid-id]
       [sa/Card {:raised true :on-click (fn []
-                                         (re-frame/dispatch [:flip-w-check grid-id image-id]))}
+                                         (re-frame/dispatch [:select-card grid-id]))}
        [sa/Reveal {
                    :animated "move"
-                   :disabled (not @revealed?)
-                   :active   @revealed?}
+                   :disabled (not (:revealed? @card-info))
+                   :active   (:revealed? @card-info)}
         [sa/RevealContent {:visible true}
          [sa/Image {:src @card-back}]]
         [sa/RevealContent {:hidden true}
-         [sa/Image {:src image}]]]])))
+         [sa/Image {:src (:image @card-info)}]]]])))
 
 (defn make-grid [cards]
-  (let [num-cards @(re-frame/subscribe [:number-of-cards])
-        image-id (fn [id] (get (get cards id) :id))
-        image (fn [id] (get (get cards id) :img))
-        board @(re-frame/subscribe [:board-setup])
-        name (re-frame/subscribe [:name])]
+  (let [num-cards @(re-frame/subscribe [:number-of-cards])]
     [sa/CardGroup {:id "card-board" :itemsPerRow 6}
-     (for [grid-id (range num-cards)]                       ;--- maybe use map instead
-       ^{:key (str "grid-" grid-id)} [make-card (image (get board grid-id)) grid-id (image-id (get board grid-id))])]))
+     (for [grid-id (range num-cards)]
+       ^{:key (str "grid-" grid-id)} [make-card grid-id])]))
 
 ;------------------------ Page Layout
 
